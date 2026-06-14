@@ -9,12 +9,6 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm install'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t cyberlog-system .'
@@ -23,7 +17,9 @@ pipeline {
 
         stage('Run Container') {
             steps {
-                sh 'docker run -d -p 3000:3000 cyberlog-system'
+                sh 'docker stop cyberlog || true'
+                sh 'docker rm cyberlog || true'
+                sh 'docker run -d -p 3000:3000 --name cyberlog cyberlog-system'
             }
         }
     }
