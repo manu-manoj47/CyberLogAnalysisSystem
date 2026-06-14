@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cyber Log Analysis</title>
+</head>
+<body>
+
+<h1>Cybersecurity Log Analysis System</h1>
+
+<input type="file" id="logfile">
+<button onclick="uploadLog()">Upload Log</button>
+
+<pre id="output"></pre>
+
+<script>
+
+async function uploadLog()
+{
+    const file =
+    document.getElementById("logfile").files[0];
+
+    const formData =
+    new FormData();
+
+    formData.append("logfile", file);
+
+    const response =
+    await fetch(
+        "http://localhost:5001/upload-log",
+        {
+            method: "POST",
+            body: formData
+        }
+    );
+
+    const data =
+    await response.json();
+
+    document.getElementById("output")
+        .innerHTML =
+        JSON.stringify(data,null,2);
+}
+
+</script>
+
+</body>
+</html>
