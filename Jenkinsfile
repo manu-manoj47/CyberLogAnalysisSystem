@@ -2,43 +2,28 @@ pipeline {
     agent any
 
     stages {
-
-        stage('Checkout') {
+        stage('Clone Code') {
             steps {
-                echo 'Source code downloaded successfully'
+                git 'https://your-repo-url.git'
             }
         }
 
-        stage('Code Validation') {
+        stage('Install Dependencies') {
             steps {
-                echo 'Backend files verified'
-                echo 'Frontend files verified'
+                sh 'npm install'
             }
         }
 
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Cybersecurity Log Analysis System Build Successful'
+                sh 'docker build -t threat-dashboard .'
             }
         }
 
-        stage('Test') {
+        stage('Run Container') {
             steps {
-                echo 'Threat Detection Module Tested'
-                echo 'Log Collection Module Tested'
+                sh 'docker run -d -p 3000:3000 threat-dashboard'
             }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Application Deployment Successful'
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Pipeline Completed Successfully'
         }
     }
 }

@@ -1,130 +1,67 @@
 const express = require("express");
-const cors = require("cors");
-const multer = require("multer");
-
-const db = require("./database");
+const http = require("http");
+const { Server } = require("socket.io");
+const axios = require("axios");
+const path = require("path");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 
-const upload = multer({
-    dest: "uploads/"
-});
+let attempts = {};
 
-app.get("/", (req, res) => {
+// ---------------- THREAT ENGINE ----------------
+function detect(ip) {
 
-    res.json({
-        project: "Cybersecurity Log Analysis System",
-        status: "Running"
-    });
+    if (!attempts[ip]) attempts[ip] = 0;
+    attempts[ip]++;
 
-});
+    if (attempts[ip] > 6) return "FORCE LOGIN ATTACK 🚨";
+    if (attempts[ip] > 3) return "SUSPICIOUS LOGIN ⚠";
 
-app.post(
-    "/upload-log",
-    upload.single("logfile"),
-    (req, res) => {
+    return "SAFE";
+}
 
-        res.json({
-            message: "Log Uploaded Successfully",
-            file: req.file.originalname
-        });
-
+// ---------------- IP INFO ----------------
+async function getLocation(ip) {
+    try {
+        const res = await axios.get(`http://ip-api.com/json/${ip}`);
+        return `${res.data.city}, ${res.data.country}`;
+    } catch {
+        return "Unknown";
     }
-);
+}
 
-app.post("/add-log", (req, res) => {
+// ---------------- LOGIN API ----------------
+app.post("/login", async (req, res) => {
 
-    const {
-        timestamp,
-        source_ip,
-        event_type,
-        severity
-    } = req.body;
+    const { username, ip } = req.body;
 
-    db.run(
-        `INSERT INTO logs
-        (timestamp,source_ip,event_type,severity)
-        VALUES (?,?,?,?)`,
-        [
-            timestamp,
-            source_ip,
-            event_type,
-            severity
-        ],
-        function(err) {
+    const location = await getLocation(ip);
+    const threat = detect(ip);
 
-            if(err)
-            {
-                return res.status(500).json(err);
-            }
+    const log = {
+        username,
+        ip,
+        location,
+        threat,
+        time: new Date().toLocaleString()
+    };
 
-            res.json({
-                message: "Log Added"
-            });
+    io.emit("new-login", log);
 
-        }
-    );
-
+    res.json({ status: "ok" });
 });
 
-app.get("/logs", (req, res) => {
-
-    db.all(
-        "SELECT * FROM logs",
-        [],
-        (err, rows) => {
-
-            if(err)
-            {
-                return res.status(500).json(err);
-            }
-
-            res.json(rows);
-
-        }
-    );
-
+// ---------------- SOCKET ----------------
+io.on("connection", () => {
+    console.log("Dashboard connected");
 });
 
-app.get("/detect-threats", (req, res) => {
-
-    db.all(
-        "SELECT * FROM logs",
-        [],
-        (err, rows) => {
-
-            if(err)
-            {
-                return res.status(500).json(err);
-            }
-
-            let alerts = [];
-
-            rows.forEach(log => {
-
-                if(log.event_type === "FAILED_LOGIN")
-                {
-                    alerts.push({
-                        ip: log.source_ip,
-                        reason: "Failed Login Attempt",
-                        severity: "HIGH"
-                    });
-                }
-
-            });
-
-            res.json(alerts);
-
-        }
-    );
-
-});
-
-app.listen(5000, () => {
-
-    console.log("Server running on port 5000");
-
+// ---------------- START ----------------
+server.listen(3000, () => {
+    console.log("Running on http://localhost:3000");
 });

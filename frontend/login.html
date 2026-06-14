@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Organization Login</title>
+</head>
+<body style="font-family:Arial; text-align:center; margin-top:100px;">
+
+<h2>🔐 Organization Login Portal</h2>
+
+<input id="username" placeholder="Username"><br><br>
+<input id="password" type="password" placeholder="Password"><br><br>
+
+<button onclick="login()">Login</button>
+
+<script>
+async function login() {
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    // Get user IP
+    const ip = await fetch("https://api.ipify.org?format=json")
+        .then(res => res.json())
+        .then(data => data.ip);
+
+    // Send login request to backend
+    await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            username,
+            password,
+            ip
+        })
+    });
+
+    alert("Login request sent to system!");
+    window.location.href = "/dashboard.html";
+}
+</script>
+
+</body>
+</html>

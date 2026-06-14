@@ -1,47 +1,334 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Cyber Log Analysis</title>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+Cybersecurity Log Analysis Dashboard
+</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+padding:20px;
+}
+
+h1{
+text-align:center;
+margin-bottom:20px;
+}
+
+button{
+padding:10px 20px;
+margin:5px;
+cursor:pointer;
+}
+
+.cards{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+margin-top:20px;
+}
+
+.card{
+background:#1e293b;
+padding:20px;
+border-radius:10px;
+width:220px;
+text-align:center;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+background:white;
+color:black;
+}
+
+table,
+th,
+td{
+border:1px solid black;
+}
+
+th,
+td{
+padding:10px;
+}
+
+.chart-box{
+background:white;
+padding:20px;
+margin-top:20px;
+border-radius:10px;
+}
+
+</style>
+
 </head>
+
 <body>
 
-<h1>Cybersecurity Log Analysis System</h1>
+<h1>
+Cybersecurity Log Analysis Dashboard
+</h1>
 
-<input type="file" id="logfile">
-<button onclick="uploadLog()">Upload Log</button>
+<input
+type="file"
+id="file">
 
-<pre id="output"></pre>
+<button onclick="uploadLog()">
+Upload Log
+</button>
+
+<button onclick="downloadReport()">
+Download Report
+</button>
+
+<div class="cards">
+
+<div class="card">
+<h2 id="logs">0</h2>
+<p>Total Logs</p>
+</div>
+
+<div class="card">
+<h2 id="alerts">0</h2>
+<p>Threat Alerts</p>
+</div>
+
+<div class="card">
+<h2 id="failed">0</h2>
+<p>Failed Logins</p>
+</div>
+
+<div class="card">
+<h2 id="ips">0</h2>
+<p>Suspicious IPs</p>
+</div>
+
+</div>
+
+<div class="chart-box">
+
+<canvas id="threatChart"></canvas>
+
+</div>
+
+<h2>
+Stored Security Logs
+</h2>
+
+<table>
+
+<thead>
+
+<tr>
+<th>ID</th>
+<th>Timestamp</th>
+<th>Event</th>
+<th>Severity</th>
+</tr>
+
+</thead>
+
+<tbody id="logTable">
+
+</tbody>
+
+</table>
 
 <script>
 
-async function uploadLog()
-{
-    const file =
-    document.getElementById("logfile").files[0];
+let chart;
 
-    const formData =
-    new FormData();
+async function uploadLog(){
 
-    formData.append("logfile", file);
+const file =
+document.getElementById("file")
+.files[0];
 
-    const response =
-    await fetch(
-        "http://localhost:5001/upload-log",
-        {
-            method: "POST",
-            body: formData
-        }
-    );
-
-    const data =
-    await response.json();
-
-    document.getElementById("output")
-        .innerHTML =
-        JSON.stringify(data,null,2);
+if(!file){
+alert("Select a log file");
+return;
 }
+
+const formData =
+new FormData();
+
+formData.append(
+"logfile",
+file
+);
+
+await fetch(
+"http://localhost:5000/upload",
+{
+method:"POST",
+body:formData
+}
+);
+
+loadStats();
+loadLogs();
+
+}
+
+async function loadStats(){
+
+const response =
+await fetch(
+"http://localhost:5000/stats"
+);
+
+const data =
+await response.json();
+
+document.getElementById("logs")
+.innerHTML =
+data.totalLogs;
+
+document.getElementById("alerts")
+.innerHTML =
+data.alerts;
+
+document.getElementById("failed")
+.innerHTML =
+data.failedLogins;
+
+document.getElementById("ips")
+.innerHTML =
+data.suspiciousIPs;
+
+drawChart(data);
+
+}
+
+async function loadLogs(){
+
+const response =
+await fetch(
+"http://localhost:5000/logs"
+);
+
+const logs =
+await response.json();
+
+let html = "";
+
+logs.forEach(log=>{
+
+html += `
+<tr>
+<td>${log.id}</td>
+<td>${log.timestamp}</td>
+<td>${log.event}</td>
+<td>${log.severity}</td>
+</tr>
+`;
+
+});
+
+document.getElementById(
+"logTable"
+).innerHTML = html;
+
+}
+
+function drawChart(data){
+
+const ctx =
+document.getElementById(
+"threatChart"
+);
+
+if(chart){
+chart.destroy();
+}
+
+chart =
+new Chart(ctx,{
+type:"bar",
+data:{
+labels:[
+"Failed Logins",
+"Suspicious IPs",
+"Alerts"
+],
+datasets:[
+{
+label:
+"Threat Statistics",
+data:[
+data.failedLogins,
+data.suspiciousIPs,
+data.alerts
+]
+}
+]
+}
+});
+
+}
+
+function downloadReport(){
+
+const report =
+
+`
+CYBERSECURITY REPORT
+
+Total Logs:
+${document.getElementById("logs").innerHTML}
+
+Threat Alerts:
+${document.getElementById("alerts").innerHTML}
+
+Failed Logins:
+${document.getElementById("failed").innerHTML}
+
+Suspicious IPs:
+${document.getElementById("ips").innerHTML}
+`;
+
+const blob =
+new Blob(
+[report],
+{
+type:"text/plain"
+}
+);
+
+const a =
+document.createElement("a");
+
+a.href =
+URL.createObjectURL(blob);
+
+a.download =
+"security_report.txt";
+
+a.click();
+
+}
+
+loadStats();
+loadLogs();
 
 </script>
 
 </body>
+
 </html>

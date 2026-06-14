@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Security Dashboard</title>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    text-align: center;
+}
+
+table {
+    width: 90%;
+    margin: auto;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    border: 1px solid #334155;
+    padding: 10px;
+}
+
+th {
+    background: #1e293b;
+}
+
+.safe { color: #22c55e; }
+.suspicious { color: #facc15; }
+.threat { color: #ef4444; }
+
+h2 {
+    margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🛡️ Live Threat Monitoring Dashboard</h2>
+
+<table>
+<tr>
+    <th>User</th>
+    <th>IP</th>
+    <th>Location</th>
+    <th>Threat Level</th>
+    <th>Time</th>
+</tr>
+
+<tbody id="logs"></tbody>
+</table>
+
+<script>
+const socket = io();
+
+socket.on("new-login", (data) => {
+
+    let className = "safe";
+
+    if (data.threat.includes("FORCE")) {
+        className = "threat";
+    } 
+    else if (data.threat.includes("SUSPICIOUS")) {
+        className = "suspicious";
+    }
+
+    const row = `
+    <tr>
+        <td>${data.username}</td>
+        <td>${data.ip}</td>
+        <td>${data.location}</td>
+        <td class="${className}">${data.threat}</td>
+        <td>${data.time}</td>
+    </tr>
+    `;
+
+    document.getElementById("logs").innerHTML += row;
+});
+</script>
+
+</body>
+</html>
