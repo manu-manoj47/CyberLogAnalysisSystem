@@ -2,9 +2,10 @@ pipeline {
     agent any
 
     stages {
-        stage('Clone Code') {
+
+        stage('Checkout') {
             steps {
-                git 'https://your-repo-url.git'
+                checkout scm
             }
         }
 
@@ -16,13 +17,13 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t threat-dashboard .'
+                sh 'docker build -t cyberlog-system .'
             }
         }
 
         stage('Run Container') {
             steps {
-                sh 'docker run -d -p 3000:3000 threat-dashboard'
+                sh 'docker run -d -p 3000:3000 cyberlog-system'
             }
         }
     }
